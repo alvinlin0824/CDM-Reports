@@ -1,0 +1,94 @@
+---
+title: "CDM Reports"
+author: "Alvin, Lin"
+date: "`r Sys.Date()`"
+date-format: full
+format:
+   html:
+     theme: flatly
+     embed-resources: true
+toc: true
+toc-depth: 3
+toc-location: left
+execute:
+  echo: false
+  warning: false
+  keep-md: true
+---
+
+<!-- EDC \\wf00168p.oneabbott.com\data1\CDM\ADC-US-RES-22225 -->
+
+<!-- \\wf00168p.oneabbott.com\data1\CDM\ADC-US-RES-22225\SE30_Glu\OpenClinica\Current -->
+
+```{r}
+#| label: Libaray Packages 
+suppressPackageStartupMessages({
+  library(tidyverse)
+  # library(janitor)
+  # library(UUU)
+  library(fs)
+  library(haven)
+  library(openxlsx)
+})
+```
+
+```{r}
+#| label: Library of EDC
+# lib <- gsub("\\\\", "/", r"(\\wf00168p.oneabbott.com\data1\CDM\ADC-US-RES-22225\SE30_Glu\OpenClinica\Current)")
+```
+
+```{r}
+#| label: List of EDC Data
+edc_path <- dir_ls(gsub("\\\\", "/", r"(\\wf00168p.oneabbott.com\data1\CDM\ADC-US-RES-22225\SE30_Glu\OpenClinica\Current)"), recurse = T, regexp = ".sas7bdat$") |> 
+            path_filter(regexp = "Archive|Map|metadata|previous", invert = T, ignore.case = T)
+```
+
+<!-- Output \\wf00168p.oneabbott.com\data1\CDM\ADC-US-RES-22225\SE30_Glu\CDM_Reports -->
+
+```{r}
+#| label: Get names of EDC
+names_of_edc <- str_extract(edc_path,"(?<=Current/)[:alnum:]+")
+```
+
+```{r}
+#| label: Import EDC data
+edc_list <- edc_path |> 
+            map(\(path) read_sas(path),.progress = T)
+```
+
+```{r}
+#| label: Assign each tibble with names
+names(edc_list) <- names_of_edc
+```
+
+```{r}
+#| label: Wrangle AE
+# Need to consider Empty tibble
+ae <- edc_list$ae1 |> 
+      left_join(edc_list$ae2, join_by(Subject, `__STUDYEVENTREPEATKEY`)) |> 
+      select(Subject,`__STUDYEVENTREPEATKEY`,starts_with("AE")) |> 
+      sjlabelled::label_to_colnames() |> 
+      mutate(across(where(is.Date), ~ format.Date(.x,format = "%d%b%Y")))
+```
+
+```{r}
+#| label: AE XLSX
+filename_of_ae <- str_c(str_extract(edc_path[1],"(?<=(RES|PMS|VAL|EXP)-)[:digit:]+"),"Adverse_Event_Report", Sys.getenv("USERNAME"),format(Sys.time(), "%Y%m%d_%H%M%S"),sep = "_")
+wb <- createWorkbook()
+addWorksheet(wb, "AdverseEvents")
+writeData(wb, "AdverseEvents", ae, colNames = TRUE, rowNames = FALSE)
+setColWidths(wb, "AdverseEvents", cols = 1:ncol(ae), widths = "20")
+# Header Style
+addStyle(wb, "AdverseEvents", style = createStyle(wrapText = TRUE, fgFill = "#EDF2F9", halign = "center", fontColour = "#112277", textDecoration = "bold", border = "TopBottomLeftRight", borderStyle = "thin"), rows = 1, cols = 1:ncol(ae))
+# Body Style
+addStyle(wb, "AdverseEvents", style = createStyle(fontSize = 10.5, halign = "left", valign = "center", wrapText = TRUE, border = "TopBottomLeftRight", borderStyle = "thin"), rows = 2:(nrow(ae)+1), cols = 1:ncol(ae), gridExpand = TRUE)
+# Add filters to the first row
+addFilter(wb, "AdverseEvents", rows = 1, cols = 1:ncol(ae))
+saveWorkbook(wb, file = str_c(filename_of_ae,".xlsx"), overwrite = TRUE)
+```
+
+```{r}
+# Empty Tibble
+sjlabelled::label_to_colnames(edc_list$uc)
+```
+
