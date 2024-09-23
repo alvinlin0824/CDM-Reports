@@ -38,22 +38,28 @@ suppressPackageStartupMessages({
 ```
 
 ```{r}
-#| label: List of EDC Data
+#| label: List of EDC Data 225
 edc_path <- dir_ls(gsub("\\\\", "/", r"(\\wf00168p.oneabbott.com\data1\CDM\ADC-US-RES-22225\SE30_Glu\OpenClinica\Current)"), recurse = T, regexp = ".sas7bdat$") |> 
+            path_filter(regexp = "Archive|Map|metadata|previous", invert = T, ignore.case = T)
+```
+
+```{r}
+#| label: List of EDC Data 234
+edc_path <- dir_ls(gsub("\\\\", "/", r"(\\wf00168p.oneabbott.com\data1\CDM\ADC-US-RES-23234\OpenClinica\Current)"), recurse = T, regexp = ".sas7bdat$") |> 
             path_filter(regexp = "Archive|Map|metadata|previous", invert = T, ignore.case = T)
 ```
 
 <!-- Output \\wf00168p.oneabbott.com\data1\CDM\ADC-US-RES-22225\SE30_Glu\CDM_Reports -->
 
 ```{r}
-#| label: Get names of EDC
-names_of_edc <- str_extract(edc_path,"(?<=Current/)[:alnum:]+")
-```
-
-```{r}
 #| label: Import EDC data
 edc_list <- edc_path |> 
             map(\(path) read_sas(path),.progress = T)
+```
+
+```{r}
+#| label: Get names of EDC
+names_of_edc <- str_extract(edc_path,"(?<=Current/)[:alnum:]+")
 ```
 
 ```{r}
@@ -67,8 +73,22 @@ names(edc_list) <- names_of_edc
 ae <- edc_list$ae1 |> 
       left_join(edc_list$ae2, join_by(Subject, `__STUDYEVENTREPEATKEY`)) |> 
       select(Subject,`__STUDYEVENTREPEATKEY`,starts_with("AE")) |> 
-      sjlabelled::label_to_colnames() |> 
-      mutate(across(where(is.Date), ~ format.Date(.x,format = "%d%b%Y")))
+      arrange(Subject) |> 
+      sjlabelled::label_to_colnames()
+```
+
+```{r}
+# Empty
+wb <- createWorkbook()
+addWorksheet(wb, "AdverseEvents")
+writeData(wb, "AdverseEvents", tibble(Notes = "There are no AEs for this study"),colNames = TRUE, rowNames = FALSE)
+setColWidths(wb, "AdverseEvents", cols = 1, widths = "40")
+# Header Style
+addStyle(wb, "AdverseEvents", style = createStyle(wrapText = TRUE, fgFill = "#EDF2F9", halign = "center", fontColour = "#112277", textDecoration = "bold", border = "TopBottomLeftRight", borderStyle = "thin"), 
+         rows = 1, cols = 1)
+# Body Style
+addStyle(wb, "AdverseEvents", style = createStyle(fontSize = 10.5, halign = "center", valign = "center", wrapText = TRUE, border = "TopBottomLeftRight", borderStyle = "thin"), rows = 2, cols = 1, gridExpand = TRUE)
+saveWorkbook(wb, file = str_c(filename_of_ae,".xlsx"), overwrite = TRUE)
 ```
 
 ```{r}
@@ -82,13 +102,161 @@ setColWidths(wb, "AdverseEvents", cols = 1:ncol(ae), widths = "20")
 addStyle(wb, "AdverseEvents", style = createStyle(wrapText = TRUE, fgFill = "#EDF2F9", halign = "center", fontColour = "#112277", textDecoration = "bold", border = "TopBottomLeftRight", borderStyle = "thin"), rows = 1, cols = 1:ncol(ae))
 # Body Style
 addStyle(wb, "AdverseEvents", style = createStyle(fontSize = 10.5, halign = "left", valign = "center", wrapText = TRUE, border = "TopBottomLeftRight", borderStyle = "thin"), rows = 2:(nrow(ae)+1), cols = 1:ncol(ae), gridExpand = TRUE)
+# Body Style Add Date format
+addStyle(wb, "AdverseEvents", style = createStyle(fontSize = 10.5, halign = "left", valign = "center", wrapText = TRUE, border = "TopBottomLeftRight", borderStyle = "thin", numFmt = "ddmmmyyyy"), rows = 2:(nrow(ae)+1), cols = 2:ncol(ae), gridExpand = TRUE)
 # Add filters to the first row
 addFilter(wb, "AdverseEvents", rows = 1, cols = 1:ncol(ae))
+# Freeze the top row
+freezePane(wb, "AdverseEvents", firstRow = TRUE)
 saveWorkbook(wb, file = str_c(filename_of_ae,".xlsx"), overwrite = TRUE)
 ```
 
 ```{r}
+#| label: Wrangle DE
+de <- edc_list$de |> 
+      select(Subject,DEYN01:last_col()) |> 
+      arrange(Subject) |> 
+      sjlabelled::label_to_colnames()
+```
+
+```{r}
+#| label: DE XLSX
+filename_of_de <- str_c(str_extract(edc_path[1],"(?<=(RES|PMS|VAL|EXP)-)[:digit:]+"),"Device_Incident_Report", Sys.getenv("USERNAME"),format(Sys.time(), "%Y%m%d_%H%M%S"),sep = "_")
+wb <- createWorkbook()
+addWorksheet(wb, "DeviceIncidents")
+writeData(wb, "DeviceIncidents", de, colNames = TRUE, rowNames = FALSE)
+setColWidths(wb, "DeviceIncidents", cols = 1:ncol(de), widths = "20")
+# Header Style
+addStyle(wb, "DeviceIncidents", style = createStyle(wrapText = TRUE, fgFill = "#EDF2F9", halign = "center", fontColour = "#112277", textDecoration = "bold", border = "TopBottomLeftRight", borderStyle = "thin"), rows = 1, cols = 1:ncol(de))
+# Body Style
+addStyle(wb, "DeviceIncidents", style = createStyle(fontSize = 10.5, halign = "left", valign = "center", wrapText = TRUE, border = "TopBottomLeftRight", borderStyle = "thin"), rows = 2:(nrow(de)+1), cols = 1:ncol(de), gridExpand = TRUE)
+# Body Style Add Date format
+addStyle(wb, "DeviceIncidents", style = createStyle(fontSize = 10.5, halign = "left", valign = "center", wrapText = TRUE, border = "TopBottomLeftRight", borderStyle = "thin", numFmt = "ddmmmyyyy"), rows = 2:(nrow(de)+1), cols = 2:ncol(de), gridExpand = TRUE)
+# Add filters to the first row
+addFilter(wb, "DeviceIncidents", rows = 1, cols = 1:ncol(de))
+# Freeze the top row
+freezePane(wb, "DeviceIncidents", firstRow = TRUE)
+saveWorkbook(wb, file = str_c(filename_of_de,".xlsx"), overwrite = TRUE)
+```
+
+```{r}
+#| label: Wrangle PD
+pd <- edc_list$pd |> 
+      select(Subject,DVYN:last_col()) |> 
+      arrange(Subject) |> 
+      sjlabelled::label_to_colnames()
+```
+
+```{r}
+#| label: DE XLSX
+filename_of_pd <- str_c(str_extract(edc_path[1],"(?<=(RES|PMS|VAL|EXP)-)[:digit:]+"),"Protocol_Deviation_Report", Sys.getenv("USERNAME"),format(Sys.time(), "%Y%m%d_%H%M%S"),sep = "_")
+wb <- createWorkbook()
+addWorksheet(wb, "ProtocolDeviation")
+writeData(wb, "ProtocolDeviation", pd, colNames = TRUE, rowNames = FALSE)
+setColWidths(wb, "ProtocolDeviation", cols = 1:ncol(pd), widths = "20")
+# Header Style
+addStyle(wb, "ProtocolDeviation", style = createStyle(wrapText = TRUE, fgFill = "#EDF2F9", halign = "center", fontColour = "#112277", textDecoration = "bold", border = "TopBottomLeftRight", borderStyle = "thin"), rows = 1, cols = 1:ncol(pd))
+# Body Style
+addStyle(wb, "ProtocolDeviation", style = createStyle(fontSize = 10.5, halign = "left", valign = "center", wrapText = TRUE, border = "TopBottomLeftRight", borderStyle = "thin"), rows = 2:(nrow(pd)+1), cols = 1:ncol(pd), gridExpand = TRUE)
+# Body Style Add Date format
+addStyle(wb, "ProtocolDeviation", style = createStyle(fontSize = 10.5, halign = "left", valign = "center", wrapText = TRUE, border = "TopBottomLeftRight", borderStyle = "thin", numFmt = "ddmmmyyyy"), rows = 2:(nrow(pd)+1), cols = 2:ncol(pd), gridExpand = TRUE)
+# Add filters to the first row
+addFilter(wb, "ProtocolDeviation", rows = 1, cols = 1:ncol(pd))
+# Freeze the top row
+freezePane(wb, "ProtocolDeviation", firstRow = TRUE)
+saveWorkbook(wb, file = str_c(filename_of_pd,".xlsx"), overwrite = TRUE)
+```
+
+```{r}
+create_and_format_sheet <- function(wb, sheet_name, data, filename_prefix) {
+  
+  wb <- createWorkbook()
+  # Generate the filename
+  filename <- str_c(str_extract(edc_path[1], "(?<=(RES|PMS|VAL|EXP)-)[:digit:]+"), filename_prefix, Sys.getenv("USERNAME"), format(Sys.time(), "%Y%m%d_%H%M%S"), sep = "_")
+  
+  if (nrow(data) != 0){
+  
+  addWorksheet(wb, sheet_name)
+  writeData(wb, sheet_name, data, colNames = TRUE, rowNames = FALSE)
+  setColWidths(wb, sheet_name, cols = 1:ncol(data), widths = "20")
+  
+  # Header Style
+  header_style <- createStyle(wrapText = TRUE, fgFill = "#EDF2F9", halign = "center", fontColour = "#112277", textDecoration = "bold", border = "TopBottomLeftRight", borderStyle = "thin")
+  addStyle(wb, sheet_name, style = header_style, rows = 1, cols = 1:ncol(data))
+  
+  # Body Style
+  body_style <- createStyle(fontSize = 10.5, halign = "left", valign = "center", wrapText = TRUE, border = "TopBottomLeftRight", borderStyle = "thin")
+  addStyle(wb, sheet_name, style = body_style, rows = 2:(nrow(data) + 1), cols = 1:ncol(data), gridExpand = TRUE)
+  
+  # Body Style Add Date format
+  date_style <- createStyle(fontSize = 10.5, halign = "left", valign = "center", wrapText = TRUE, border = "TopBottomLeftRight", borderStyle = "thin", numFmt = "ddmmmyyyy")
+  addStyle(wb, sheet_name, style = date_style, rows = 2:(nrow(data) + 1), cols = 2:ncol(data), gridExpand = TRUE)
+  
+  # Add filters to the first row
+  addFilter(wb, sheet_name, rows = 1, cols = 1:ncol(data))
+  
+  # Freeze the top row
+  freezePane(wb, sheet_name, firstRow = TRUE)
+  
+
+  saveWorkbook(wb, file = str_c(filename, ".xlsx"), overwrite = TRUE)
+  
+  } else {
+    
+    if (filename_prefix == "Adverse_Event_Report"){
+        df <- tibble(Notes = "There are no AEs for this study")
+    } else if (filename_prefix == "Device_Incident_Report"){
+        df <- tibble(Notes = "There are no DEs for this study")
+    } else if (filename_prefix == "Protocol_Deviation_Report"){
+      df <- tibble(Notes = "There are no PDs for this study")
+    }
+    # wb <- createWorkbook()
+    addWorksheet(wb, sheet_name)
+    writeData(wb, sheet_name, df, colNames = TRUE, rowNames = FALSE)
+    setColWidths(wb, sheet_name, cols = 1, widths = "40")
+    # Header Style
+    addStyle(wb, sheet_name, style = createStyle(wrapText = TRUE, fgFill = "#EDF2F9", halign = "center", fontColour = "#112277", textDecoration = "bold", border = "TopBottomLeftRight", borderStyle = "thin"), 
+             rows = 1, cols = 1)
+    # Body Style
+    addStyle(wb, sheet_name, style = createStyle(fontSize = 10.5, halign = "center", valign = "center", wrapText = TRUE, border = "TopBottomLeftRight", borderStyle = "thin"), rows = 2, cols = 1, gridExpand = TRUE)
+    saveWorkbook(wb, file = str_c(filename,".xlsx"), overwrite = TRUE)
+  }
+}
+```
+
+```{r}
+datasets <- list(ae = "Adverse_Event_Report", de = "Device_Incident_Report", pd = "Protocol_Deviation_Report")
+sheet_names <- c("AdverseEvents", "DeviceIncidents", "ProtocolDeviation")
+
+# Loop through the datasets and apply the function
+for (i in seq_along(datasets)) {
+  wb <- createWorkbook()
+  create_and_format_sheet(wb, sheet_names[i], get(names(datasets)[i]), datasets[[i]])
+}
+```
+
+
+```{r}
+datasets <- list(ae = "Adverse_Event_Report", de = "Device_Incident_Report")
+sheet_names <- c("AdverseEvents", "DeviceIncidents")
+```
+
+```{r}
+datasets[[1]]
+```
+```{r}
+sheet_names[1]
+```
+```{r}
+get(names(datasets)[1]) |> nrow()
+```
+
+
+```{r}
 # Empty Tibble
-sjlabelled::label_to_colnames(edc_list$uc)
+
+if (nrow(edc_list$uc) == 0)
+
+sjlabelled::label_to_colnames(edc_list$uc) |> View()
 ```
 
