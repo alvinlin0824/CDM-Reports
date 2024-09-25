@@ -30,19 +30,19 @@ path <- readline("Please paste the directory: ")
 
 ```{r}
 #| label: Directory
-edc_path <- dir_ls(gsub("\\\\", "/",path), recurse = T, regexp = ".sas7bdat$") |> 
+edc_path <- dir_ls(gsub("\\\\", "/",path), recurse = F, regexp = ".sas7bdat$") |> 
             path_filter(regexp = "Archive|Map|metadata|previous", invert = T, ignore.case = T)
 ```
 
 ```{r}
 #| label: List of EDC Data 225
-# edc_path <- dir_ls(gsub("\\\\", "/", r"(\\wf00168p.oneabbott.com\data1\CDM\ADC-US-RES-22225\SE30_Glu\OpenClinica\Current)"), recurse = T, regexp = ".sas7bdat$") |> 
-#             path_filter(regexp = "Archive|Map|metadata|previous", invert = T, ignore.case = T)
+# edc_path <- dir_ls(gsub("\\\\", "/", r"(\\wf00168p.oneabbott.com\data1\CDM\ADC-US-RES-22225\SE30_Glu\OpenClinica\Current)"), recurse = F, regexp = ".sas7bdat$") |> 
+#              path_filter(regexp = "Archive|Map|metadata|previous", invert = T, ignore.case = T)
 ```
 
 ```{r}
 #| label: List of EDC Data 234
-# edc_path <- dir_ls(gsub("\\\\", "/", r"(\\wf00168p.oneabbott.com\data1\CDM\ADC-US-RES-23234\OpenClinica\Current)"), recurse = T, regexp = ".sas7bdat$") |> 
+# dir_ls(gsub("\\\\", "/", r"(\\wf00168p.oneabbott.com\data1\CDM\ADC-US-VAL-21206\OpenClinica\Current)"), recurse = F, regexp = ".sas7bdat$") |> 
 #             path_filter(regexp = "Archive|Map|metadata|previous", invert = T, ignore.case = T)
 ```
 
@@ -225,8 +225,16 @@ ssu <- edc_list$ssu1 |>
 
 ```{r}
 #| label: Create Directory
-output_directory <- str_c(gsub("\\\\", "/", r"(\\oneabbott.com\dept\ADC\Technical_OPS\Clinical_Affairs\Clinical Study Files\Apollo\ADC-US-RES-22225 Multi-Analyte Studies\Statistics\Programs\SE30\AL)"),"/", 
-                          format(Sys.Date(), "%Y%m%d"))
+# output_directory <- str_c(gsub("\\\\", "/", r"(\\oneabbott.com\dept\ADC\Technical_OPS\Clinical_Affairs\Clinical Study Files\Apollo\ADC-US-RES-22225 Multi-Analyte Studies\Statistics\Programs\SE30\AL)"),"/", 
+#                            format(Sys.Date(), "%Y%m%d"))
+# if (!dir_exists(output_directory)){
+#     dir_create(output_directory)
+# }
+```
+
+```{r}
+#| label: Create Directory on M Drive
+output_directory <- str_c(str_replace(edc_path[1],"OpenClinica.+","CDM_Reports"),"/",format(Sys.Date(),"%Y%m%d"))
 if (!dir_exists(output_directory)){
     dir_create(output_directory)
 }
@@ -355,13 +363,6 @@ saveWorkbook(wb, file = str_c(filename, ".xlsx"), overwrite = TRUE)
 
 <!-- Output \\wf00168p.oneabbott.com\data1\CDM\ADC-US-RES-22225\SE30_Glu\CDM_Reports -->
 <!-- //wf00168p.oneabbott.com/data1/CDM/ADC-US-RES-22225/SE30_Glu/OpenClinica/Current/ae1.sas7bdat -->
-
-```{r}
-#| label: Create Dir on M Drive
-# if (!dir_exists(str_c(str_replace(edc_path[1],"OpenClinica.+","CDM_Reports"),"/",format(Sys.Date(),"%Y%m%d")))){
-#     dir_create(str_c(str_replace(edc_path[1],"OpenClinica.+","CDM_Reports"),"/",format(Sys.Date(),"%Y%m%d")))
-# }
-```
 
 ```{r}
 # str_c(str_replace(edc_path[1],"OpenClinica.+","CDM_Reports"),"/",format(Sys.Date(),"%Y%m%d"))
