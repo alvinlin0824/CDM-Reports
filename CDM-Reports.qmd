@@ -25,18 +25,26 @@ suppressPackageStartupMessages({
 
 ```{r}
 #| label: User-defined path
+
 path <- readline("Please paste the directory: ")
 ```
 
 ```{r}
 #| label: Directory
-edc_path <- dir_ls(gsub("\\\\", "/",path), recurse = F, regexp = ".sas7bdat$") |> 
-            path_filter(regexp = "Archive|Map|metadata|previous", invert = T, ignore.case = T)
+
+edc_path <- dir_ls(gsub("\\\\", "/",path), recurse = F, regexp = ".sas7bdat$") |>
+             path_filter(regexp = "Archive|Map|metadata|previous", invert = T, ignore.case = T)
 ```
 
 ```{r}
 #| label: List of EDC Data 225
-# edc_path <- dir_ls(gsub("\\\\", "/", r"(\\wf00168p.oneabbott.com\data1\CDM\ADC-US-RES-22225\SE30_Glu\OpenClinica\Current)"), recurse = F, regexp = ".sas7bdat$") |> 
+
+# edc_path <- dir_ls(gsub("\\\\", "/", r"(\\wf00168p.oneabbott.com\data1\CDM\ADC-US-RES-22225\SE30_Glu\OpenClinica\Current)"), recurse = F, regexp = ".sas7bdat$") |>
+#              path_filter(regexp = "Archive|Map|metadata|previous", invert = T, ignore.case = T)
+```
+
+```{r}
+# edc_path1 <- dir_ls(gsub("\\\\", "/", r"(\\wf00168p.oneabbott.com\data1\CDM\ADC-US-RES-22225\SE18_19_Glu\OpenClinica\Current)"), recurse = F, regexp = ".sas7bdat$") |>
 #              path_filter(regexp = "Archive|Map|metadata|previous", invert = T, ignore.case = T)
 ```
 
@@ -54,7 +62,12 @@ edc_list <- edc_path |>
 
 ```{r}
 #| label: Get names of EDC
+# Rename ssu1 ssu2 ssu3
+if (any(str_detect(names_of_edc,"ss1"))){
+names_of_edc <- str_replace_all(str_extract(edc_path,"(?<=Current/)[:alnum:]+"),"ss","ssu")
+ } else {
 names_of_edc <- str_extract(edc_path,"(?<=Current/)[:alnum:]+")
+}
 ```
 
 ```{r}
@@ -63,181 +76,401 @@ names(edc_list) <- names_of_edc
 ```
 
 ```{r}
+#| label: Filter Data
+filter_data <- tibble(EDC = c("ae1","ie","ie001","cad2","cad3","cad4","cad5","cad6","cm1","de","dm","mh1","sk1","sa","sr2","pd","co","se","uc","vs","du1","ssu1","iv1","ch1","ch2","lb1","qcrg1","yi1","yr1","ys1","fv","ik1","kd1","ma","ps2","vk1","yd1","kr1"),
+                      Sheet = c("AdverseEvents", "Eligibility", "InformedConsent",
+                                "ClinicVisit2","ClinicVisit3","ClinicVisit4",
+                                "ClinicVisit5","ClinicVisit6","Medications",
+                                "Device_Incidents","Demography","Diabetes_History",
+                                "SkinAssessment","SensorApplication","SensorRemoval",
+                                "Protocol_Deviation","Comments","Study_Exit",
+                                "Unscheduled_Contact","Vital_Signs","FinalDataUpload",
+                                "StudySetup","IV_Sample","HyPO_Induct","HyPER_Induct",
+                                "LabData","QC_YSI","YSI_Replicate","YSI_Results",
+                                "YSI_Correction","Final_Visit","IV_Sample_Collection_Ketone",
+                                "Safety_Parameter_Log","SGLT-2 Medication Assessment",
+                                "Pump Suspension-Pediatric","Venous Ketone Results",
+                                "Reference Data File Upload","Ketone Results")) |> 
+                semi_join(tibble(names_of_edc) , by = join_by(EDC == names_of_edc))
+```
+
+```{r}
 #| label: Wrangle AE
-ae <- edc_list$ae1 |> 
-      left_join(edc_list$ae2, join_by(Subject, `__STUDYEVENTREPEATKEY`)) |> 
-      select(Subject,`__STUDYEVENTREPEATKEY`,starts_with("AE")) |> 
-      arrange(Subject) |> 
-      sjlabelled::label_to_colnames()
+if("ae1" %in% c(filter_data$EDC)){
+ae1 <- edc_list$ae1 |> 
+       left_join(edc_list$ae2, join_by(Subject, `__STUDYEVENTREPEATKEY`)) |> 
+       select(Subject,`__STUDYEVENTREPEATKEY`,starts_with("AE")) |> 
+       arrange(Subject) |> 
+       sjlabelled::label_to_colnames()}
 ```
 
 ```{r}
 #| label: Wrangle IE
+if("ie" %in% c(filter_data$EDC)){
 ie <- edc_list$ie |> 
       select(Subject,starts_with("IE")) |> 
       arrange(Subject) |> 
-      sjlabelled::label_to_colnames()
+      sjlabelled::label_to_colnames()}
 ```
 
 ```{r}
 #| label: Wrangle IE001
+if("ie001" %in% c(filter_data$EDC)){
 ie001 <- edc_list$ie001 |> 
          select(Subject,starts_with("IE")) |> 
          arrange(Subject) |> 
-         sjlabelled::label_to_colnames()
+         sjlabelled::label_to_colnames()}
 ```
 
 ```{r}
 #| label: Wrangle CAD2
+if("cad2" %in% c(filter_data$EDC)){
 cad2 <- edc_list$cad2 |> 
         select(Subject,starts_with("DS")) |> 
         arrange(Subject) |> 
-        sjlabelled::label_to_colnames()
+        sjlabelled::label_to_colnames()}
 ```
 
 ```{r}
 #| label: Wrangle CAD3
+if("cad3" %in% c(filter_data$EDC)){
 cad3 <- edc_list$cad3 |> 
         select(Subject,starts_with("DS")) |> 
         arrange(Subject) |> 
-        sjlabelled::label_to_colnames()
+        sjlabelled::label_to_colnames()}
+```
+
+```{r}
+#| label: Wrangle CAD4
+if("cad4" %in% c(filter_data$EDC)){
+cad4 <- edc_list$cad4 |> 
+        select(Subject,starts_with("DS")) |> 
+        arrange(Subject) |> 
+        sjlabelled::label_to_colnames()}
+```
+
+```{r}
+#| label: Wrangle CAD5
+if("cad5" %in% c(filter_data$EDC)){
+cad5 <- edc_list$cad5 |> 
+        select(Subject,starts_with("DS")) |> 
+        arrange(Subject) |> 
+        sjlabelled::label_to_colnames()}
+```
+
+```{r}
+#| label: Wrangle CAD6
+if("cad6" %in% c(filter_data$EDC)){
+cad6 <- edc_list$cad6 |> 
+        select(Subject,starts_with("DS")) |> 
+        arrange(Subject) |> 
+        sjlabelled::label_to_colnames()}
 ```
 
 ```{r}
 #| label: Wrangle CM1 and CM2
-cm <- edc_list$cm1 |>
+if("cm1" %in% c(filter_data$EDC)){
+cm1 <- edc_list$cm1 |>
        full_join(edc_list$cm2,by = join_by(Subject, `__STUDYEVENTREPEATKEY`)) |> 
        select(Subject,`__STUDYEVENTREPEATKEY`, starts_with("CM")) |> 
        arrange(Subject) |> 
-       sjlabelled::label_to_colnames()
+       sjlabelled::label_to_colnames()}
 ```
 
 ```{r}
 #| label: Wrangle DE
+if("de" %in% c(filter_data$EDC)){
 de <- edc_list$de |> 
       select(Subject,DEYN01:last_col()) |> 
       arrange(Subject) |> 
-      sjlabelled::label_to_colnames()
+      sjlabelled::label_to_colnames()}
 ```
 
 ```{r}
 #| label: Wrangle DM
+if("dm" %in% c(filter_data$EDC)){
 dm <- edc_list$dm |> 
       select(Subject, DMYN:last_col()) |> 
       arrange(Subject) |> 
-      sjlabelled::label_to_colnames()
+      sjlabelled::label_to_colnames()}
 ```
 
 ```{r}
 #| label: Wrangle MH1
+if("mh1" %in% c(filter_data$EDC)){
 mh1 <- edc_list$mh1 |> 
-       select(Subject, MHYN02:last_col()) |> 
+       select(Subject, starts_with("MH")) |> 
        arrange(Subject) |> 
-       sjlabelled::label_to_colnames()
+       sjlabelled::label_to_colnames()}
 ```
 
 ```{r}
 #| label: Wrangle SK1 and SK2
-sk <- edc_list$sk1 |> 
-      full_join(edc_list$sk2, by = join_by(Subject, `__STUDYEVENTREPEATKEY`)) |> 
-      select(Subject,`__STUDYEVENTREPEATKEY`, starts_with("PE")) |>
-      arrange(Subject) |> 
-      sjlabelled::label_to_colnames()
+if("sk1" %in% c(filter_data$EDC)){
+sk1 <- edc_list$sk1 |> 
+       full_join(edc_list$sk2, by = join_by(Subject, `__STUDYEVENTREPEATKEY`)) |> 
+       select(Subject,`__STUDYEVENTREPEATKEY`, starts_with("PE")) |>
+       arrange(Subject) |> 
+       sjlabelled::label_to_colnames()}
 ```
 
 ```{r}
 #| label: Wrangle SA
+if("sa" %in% c(filter_data$EDC)){
 sa <- edc_list$sa |> 
       select(Subject, starts_with("DU")) |> 
       arrange(Subject) |> 
-      sjlabelled::label_to_colnames()
+      sjlabelled::label_to_colnames()}
 ```
 
 ```{r}
 #| label: Wrangle SR1 and SR2
-sr <- edc_list$sr1 |> 
+if("sr2" %in% c(filter_data$EDC)){
+sr2 <- edc_list$sr1 |> 
       full_join(edc_list$sr2, by = join_by(Subject, `__STUDYEVENTREPEATKEY`)) |> 
       select(Subject,`__STUDYEVENTREPEATKEY`, starts_with("DR")) |>
       arrange(Subject) |> 
-      sjlabelled::label_to_colnames()
+      sjlabelled::label_to_colnames()}
 ```
 
 ```{r}
 #| label: Wrangle PD
+if("pd" %in% c(filter_data$EDC)){
 pd <- edc_list$pd |> 
       select(Subject,DVYN:last_col()) |> 
       arrange(Subject) |> 
-      sjlabelled::label_to_colnames()
+      sjlabelled::label_to_colnames()}
 ```
 
 ```{r}
 #| label: Wrangle CO
+if("co" %in% c(filter_data$EDC)){
 co <- edc_list$co |> 
       select(Subject, starts_with("CO")) |>
       arrange(Subject) |> 
-      sjlabelled::label_to_colnames()
+      sjlabelled::label_to_colnames()}
 ```
 
 ```{r}
 #| label: Wrangle SE
+if("se" %in% c(filter_data$EDC)){
 se <- edc_list$se |> 
       select(Subject, starts_with("DS")) |>
       arrange(Subject) |> 
-      sjlabelled::label_to_colnames()
+      sjlabelled::label_to_colnames()}
 ```
 
 ```{r}
 #| label: Wrangle UC
+if("uc" %in% c(filter_data$EDC)){
 uc <- edc_list$uc |> 
       select(Subject, starts_with("UV")) |>
       arrange(Subject) |> 
-      sjlabelled::label_to_colnames()
+      sjlabelled::label_to_colnames()}
 ```
 
 ```{r}
 #| label: Wrangle VS
+if("vs" %in% c(filter_data$EDC)){
 vs <- edc_list$vs |> 
       select(Subject, starts_with("VS")) |>
       arrange(Subject) |> 
-      sjlabelled::label_to_colnames()
+      sjlabelled::label_to_colnames()}
 ```
 
 ```{r}
 #| label: Wrangle DU1 and DU2
-du <- edc_list$du1 |> 
+if("du1" %in% c(filter_data$EDC)){
+du1 <- edc_list$du1 |> 
       full_join(edc_list$du2, by = join_by(Subject, `__STUDYEVENTREPEATKEY`)) |> 
       select(Subject,`__STUDYEVENTREPEATKEY`, starts_with("UP")) |>
       arrange(Subject) |> 
-      sjlabelled::label_to_colnames()
+      sjlabelled::label_to_colnames()}
 ```
 
 ```{r}
 #| label: Wrangle SSU1 and SSU2 and SSU3
-ssu <- edc_list$ssu1 |> 
-       full_join(edc_list$ssu2, by = join_by(Subject, `__STUDYEVENTREPEATKEY`)) |>
-       full_join(edc_list$ssu3, by = join_by(Subject, `__STUDYEVENTREPEATKEY`)) |>
-       select(Subject,`__STUDYEVENTREPEATKEY`, starts_with("SL")) |>
+if("ssu1" %in% c(filter_data$EDC)){
+ssu1 <- edc_list$ssu1 |> 
+        full_join(edc_list$ssu2, by = join_by(Subject, `__STUDYEVENTREPEATKEY`)) |>
+        full_join(edc_list$ssu3, by = join_by(Subject, `__STUDYEVENTREPEATKEY`)) |>
+        select(Subject,`__STUDYEVENTREPEATKEY`, starts_with("SL")) |>
+        arrange(Subject) |> 
+        sjlabelled::label_to_colnames()}
+```
+
+```{r}
+#| label: Wrangle IV1 and IV2
+if("iv1" %in% c(filter_data$EDC)){
+iv1 <- edc_list$iv1 |> 
+       full_join(edc_list$iv2, by = join_by(Subject, `__STUDYEVENTREPEATKEY`)) |> 
+       select(Subject,`__STUDYEVENTREPEATKEY`, starts_with("IV")) |> 
        arrange(Subject) |> 
-       sjlabelled::label_to_colnames()
+       sjlabelled::label_to_colnames()}
+```
+
+```{r}
+#| label: Wrangle CH1 
+if("ch1" %in% c(filter_data$EDC)){
+ch1 <- edc_list$ch1 |> 
+       select(Subject,`__STUDYEVENTREPEATKEY`, starts_with("CH")) |> 
+       arrange(Subject) |> 
+       sjlabelled::label_to_colnames()}
+```
+
+```{r}
+#| label: Wrangle CH2 
+if("ch2" %in% c(filter_data$EDC)){
+ch2 <- edc_list$ch2 |> 
+       select(Subject,`__STUDYEVENTREPEATKEY`, starts_with("CH")) |> 
+       arrange(Subject) |> 
+       sjlabelled::label_to_colnames()}
+```
+
+```{r}
+#| label: Wrangle LB1 and LB2
+if("lb1" %in% c(filter_data$EDC)){
+lb1 <- edc_list$lb1 |> 
+       full_join(edc_list$lb2, by = join_by(Subject, `__STUDYEVENTREPEATKEY`)) |> 
+       select(Subject,`__STUDYEVENTREPEATKEY`, starts_with("LB")) |> 
+       arrange(Subject) |> 
+       sjlabelled::label_to_colnames()}
+```
+
+```{r}
+#| label: Wrangle QCRG1 and QCRG2
+if("qcrg1" %in% c(filter_data$EDC)){
+qcrg1 <- edc_list$qcrg1 |> 
+         full_join(edc_list$qcrg2, by = join_by(Subject, `__STUDYEVENTREPEATKEY`)) |> 
+         select(Subject,`__STUDYEVENTREPEATKEY`, starts_with("DQ")) |> 
+         arrange(Subject) |> 
+         sjlabelled::label_to_colnames()}
+```
+
+```{r}
+#| label: Wrangle YI1 and YI2
+if("yi1" %in% c(filter_data$EDC)){
+yi1 <- edc_list$yi1 |> 
+       full_join(edc_list$yi2, by = join_by(Subject, `__STUDYEVENTREPEATKEY`)) |> 
+       select(Subject,`__STUDYEVENTREPEATKEY`, starts_with("YI")) |> 
+       arrange(Subject) |> 
+       sjlabelled::label_to_colnames()}
+```
+
+```{r}
+#| label: Wrangle YR1 and YR2
+if("yr1" %in% c(filter_data$EDC)){
+yr1 <- edc_list$yr1 |> 
+       full_join(edc_list$yr2, by = join_by(Subject, `__STUDYEVENTREPEATKEY`)) |> 
+       select(Subject,`__STUDYEVENTREPEATKEY`, starts_with("YR")) |> 
+       arrange(Subject) |> 
+       sjlabelled::label_to_colnames()}
+```
+
+```{r}
+#| label: Wrangle YS1 and YS2
+if("ys1" %in% c(filter_data$EDC)){
+ys1 <- edc_list$ys1 |> 
+       full_join(edc_list$ys2, by = join_by(Subject, `__STUDYEVENTREPEATKEY`)) |> 
+       select(Subject,`__STUDYEVENTREPEATKEY`, starts_with("YS")) |> 
+       arrange(Subject) |> 
+       sjlabelled::label_to_colnames()}
+```
+
+```{r}
+#| label: Wrangle FV 
+if("fv" %in% c(filter_data$EDC)){
+fv <- edc_list$fv |> 
+      select(Subject,`__STUDYEVENTREPEATKEY`, starts_with("DS")) |> 
+      arrange(Subject) |> 
+      sjlabelled::label_to_colnames()}
+```
+
+```{r}
+#| label: Wrangle IK1 and IK2
+if("ik1" %in% c(filter_data$EDC)){
+ik1 <- edc_list$ik1 |> 
+       full_join(edc_list$ik2, by = join_by(Subject, `__STUDYEVENTREPEATKEY`)) |> 
+       select(Subject,`__STUDYEVENTREPEATKEY`, starts_with("IV")) |> 
+       arrange(Subject) |> 
+       sjlabelled::label_to_colnames()}
+```
+
+```{r}
+#| label: Wrangle KD1 and KD2
+if("kd1" %in% c(filter_data$EDC)){
+kd1 <- edc_list$kd1 |> 
+       full_join(edc_list$kd2, by = join_by(Subject, `__STUDYEVENTREPEATKEY`)) |> 
+       select(Subject,`__STUDYEVENTREPEATKEY`, starts_with("KD")) |> 
+       arrange(Subject) |> 
+       sjlabelled::label_to_colnames()}
+```
+
+```{r}
+#| label: Wrangle MA
+if("ma" %in% c(filter_data$EDC)){
+ma <- edc_list$ma |> 
+      select(Subject,starts_with("QS")) |> 
+      arrange(Subject) |> 
+      sjlabelled::label_to_colnames()}
+```
+
+```{r}
+#| label: Wrangle PS2
+if("ps2" %in% c(filter_data$EDC)){
+ps2 <- edc_list$ps2 |> 
+       select(Subject,starts_with("PS")) |> 
+       arrange(Subject) |> 
+       sjlabelled::label_to_colnames()}
+```
+
+```{r}
+#| label: Wrangle VK1 and VK2
+if("vk1" %in% c(filter_data$EDC)){
+vk1 <- edc_list$vk1 |> 
+       full_join(edc_list$vk2, by = join_by(Subject, `__STUDYEVENTREPEATKEY`)) |> 
+       select(Subject,`__STUDYEVENTREPEATKEY`, starts_with("KR")) |> 
+       arrange(Subject) |> 
+       sjlabelled::label_to_colnames()}
+```
+
+```{r}
+#| label: Wrangle YD1 and YD2
+if("yd1" %in% c(filter_data$EDC)){
+yd1 <- edc_list$yd1 |> 
+       full_join(edc_list$yd2, by = join_by(Subject, `__STUDYEVENTREPEATKEY`)) |> 
+       select(Subject,`__STUDYEVENTREPEATKEY`, starts_with("YD")) |> 
+       arrange(Subject) |> 
+       sjlabelled::label_to_colnames()}
+```
+
+```{r}
+#| label: Wrangle KR1 and KR2
+if("kr1" %in% c(filter_data$EDC)){
+kr1 <- edc_list$kr1 |> 
+       full_join(edc_list$kr2, by = join_by(Subject, `__STUDYEVENTREPEATKEY`)) |> 
+       select(Subject,`__STUDYEVENTREPEATKEY`, starts_with("KR")) |> 
+       arrange(Subject) |> 
+       sjlabelled::label_to_colnames()}
 ```
 
 <!-- \\oneabbott.com\dept\ADC\Technical_OPS\Clinical_Affairs\Clinical Study Files\Apollo\ADC-US-RES-22225 Multi-Analyte Studies\Statistics\Programs\SE30\AL -->
 
 ```{r}
-#| label: Create Directory
-# output_directory <- str_c(gsub("\\\\", "/", r"(\\oneabbott.com\dept\ADC\Technical_OPS\Clinical_Affairs\Clinical Study Files\Apollo\ADC-US-RES-22225 Multi-Analyte Studies\Statistics\Programs\SE30\AL)"),"/", 
-#                            format(Sys.Date(), "%Y%m%d"))
-# if (!dir_exists(output_directory)){
-#     dir_create(output_directory)
-# }
+#| label: Create Output Directory
+output_directory <- str_c(gsub("\\\\", "/", r"(\\oneabbott.com\dept\ADC\Technical_OPS\Clinical_Affairs\Clinical Study Files\Apollo\ADC-US-RES-22225 Multi-Analyte Studies\Statistics\Programs\SE30\AL)"),"/", 
+                           format(Sys.Date(), "%Y%m%d"))
+if (!dir_exists(output_directory)){
+     dir_create(output_directory)
+}
 ```
 
 ```{r}
 #| label: Create Directory on M Drive
-output_directory <- str_c(str_replace(edc_path[1],"OpenClinica.+","CDM_Reports"),"/",format(Sys.Date(),"%Y%m%d"))
-if (!dir_exists(output_directory)){
-    dir_create(output_directory)
-}
+# output_directory <- str_c(str_replace(edc_path[1],"OpenClinica.+","CDM_Reports"),"/",format(Sys.Date(),"%Y%m%d"))
+# if (!dir_exists(output_directory)){
+#     dir_create(output_directory)
+# }
 ```
 
 ```{r}
@@ -247,7 +480,7 @@ create_and_format_sheet <- function(wb, sheet_name, data, filename_prefix) {
   wb <- createWorkbook()
   addWorksheet(wb, sheet_name)
   # Generate the filename
-  filename <- str_c(output_directory,"/",str_c(str_extract(edc_path[1], "(?<=(RES|PMS|VAL|EXP)-)[:digit:]+"), filename_prefix, Sys.getenv("USERNAME"), format(Sys.time(), "%Y%m%d_%H%M%S"), sep = "_"))
+  filename <- str_c(output_directory,"/",str_c(str_extract(edc_path[1], "(?<=(RES|PMS|VAL|EXP)-)[:digit:]+"), filename_prefix, str_to_upper(Sys.getenv("USERNAME")), format(Sys.time(), "%Y%m%d_%H%M%S"), sep = "_"))
   
   if (nrow(data) != 0){
   
@@ -264,8 +497,14 @@ create_and_format_sheet <- function(wb, sheet_name, data, filename_prefix) {
   
   # Body Style Add Date format
   date_style <- createStyle(fontName = "Arial", fontSize = 9.5, halign = "left", valign = "center", wrapText = TRUE, border = "TopBottomLeftRight", borderStyle = "thin", numFmt = "ddmmmyyyy")
-  addStyle(wb, sheet_name, style = date_style, rows = 2:(nrow(data) + 1), cols = 2:ncol(data), gridExpand = TRUE)
+
+# Identify date columns using map_lgl
+ date_cols <- which(map_lgl(data, ~ inherits(.x, "Date")))
   
+ for(col in date_cols){
+  addStyle(wb, sheet_name, style = date_style, rows = 2:(nrow(data) + 1), cols = col, gridExpand = TRUE)}
+  
+
   # Add filters to the first row
   addFilter(wb, sheet_name, rows = 1, cols = 1:ncol(data))
   
@@ -297,7 +536,7 @@ create_and_format_sheet <- function(wb, sheet_name, data, filename_prefix) {
 
 ```{r}
 #| label: For Loop to output AE DE PD
-datasets <- list(ae = "Adverse_Event_Report", de = "Device_Incident_Report", pd = "Protocol_Deviation_Report")
+datasets <- list(ae1 = "Adverse_Event_Report", de = "Device_Incident_Report", pd = "Protocol_Deviation_Report")
 sheet_names <- c("AdverseEvents", "DeviceIncidents", "ProtocolDeviation")
 
 # Loop through the datasets and apply the function
@@ -309,22 +548,21 @@ for (i in seq_along(datasets)) {
 ```{r}
 #| label: Across CRF
 #| include: false
-filename <- str_c(output_directory,"/",str_c(str_extract(edc_path[1], "(?<=(RES|PMS|VAL|EXP)-)[:digit:]+"),"Comments_Across_CRF_Data", Sys.getenv("USERNAME"), format(Sys.time(), "%Y%m%d_%H%M%S"), sep = "_"))
+filename <- str_c(output_directory,"/",str_c(str_extract(edc_path[1], "(?<=(RES|PMS|VAL|EXP)-)[:digit:]+"),"Comments_Across_CRF_Data", str_to_upper(Sys.getenv("USERNAME")), format(Sys.time(), "%Y%m%d_%H%M%S"), sep = "_"))
 
 wb <- createWorkbook()
-sheet_names <- c("Index", "AdverseEvents", "Eligibility", "InformedConsent",
-                 "ClinicVisit2","ClinicVisit3","Medications",
-                 "Device_Incidents","Demography","Diabetes_History",
-                 "SkinAssessment","SensorApplication","SensorRemoval",
-                 "Protocol_Deviation","Comments","Study_Exit",
-                 "Unscheduled_Contact","Vital_Signs","FinalDataUpload",
-                 "StudySetup")  # Add more sheet names as needed
+# User-Define
+sheet_names <- c("Index", filter_data$Sheet)
 # Add each sheet name as a worksheet to the workbook
 lapply(sheet_names, addWorksheet, wb = wb)
 
 writeData(wb, "Index", tibble(Sheet = sheet_names[-1]))
-
-data_list <- list(ae,ie,ie001,cad2,cad3,cm,de,dm,mh1,sk,sa,sr,pd,co,se,uc,vs,du,ssu)
+# User-Define
+# data_list <- list(ae,ie,ie001,cad2,cad3,cm,de,dm,mh1,sk,sa,sr,pd,co,se,uc,vs,du,ssu)
+data_list <- list()
+for (names in filter_data$EDC){
+    data_list[[names]] <-  get(names)
+}
 
 # Write data to the sheets using a for loop
 for (i in 1:length(data_list)) {
@@ -340,9 +578,14 @@ for (i in 1:length(data_list)) {
   body_style <- createStyle(fontName = "Arial", fontSize = 9.5, halign = "left", valign = "center", wrapText = TRUE, border = "TopBottomLeftRight", borderStyle = "thin")
   addStyle(wb, sheet_names[i + 1], style = body_style, rows = 2:(nrow(data_list[[i]]) + 1), cols = 1:ncol(data_list[[i]]), gridExpand = TRUE)
   
-  # Body Style Add Date format
+# Body Style Add Date format
   date_style <- createStyle(fontName = "Arial", fontSize = 9.5, halign = "left", valign = "center", wrapText = TRUE, border = "TopBottomLeftRight", borderStyle = "thin", numFmt = "ddmmmyyyy")
-  addStyle(wb, sheet_names[i + 1], style = date_style, rows = 2:(nrow(data_list[[i]]) + 1), cols = 2:ncol(data_list[[i]]), gridExpand = TRUE)
+
+# Identify date columns using map_lgl
+ date_cols <- which(map_lgl(data_list[[i]], ~ inherits(.x, "Date")))
+  
+ for(col in date_cols){
+  addStyle(wb, sheet_names[i + 1], style = date_style, rows = 2:(nrow(data_list[[i]]) + 1), cols = col, gridExpand = TRUE)}
   
   # Add filters to the first row
   addFilter(wb, sheet_names[i + 1], rows = 1, cols = 1:ncol(data_list[[i]]))
@@ -358,12 +601,4 @@ for (i in 2:length(sheet_names)) {
 }
 showGridLines(wb, sheet = "Index", showGridLines = FALSE)
 saveWorkbook(wb, file = str_c(filename, ".xlsx"), overwrite = TRUE)
-```
-
-
-<!-- Output \\wf00168p.oneabbott.com\data1\CDM\ADC-US-RES-22225\SE30_Glu\CDM_Reports -->
-<!-- //wf00168p.oneabbott.com/data1/CDM/ADC-US-RES-22225/SE30_Glu/OpenClinica/Current/ae1.sas7bdat -->
-
-```{r}
-# str_c(str_replace(edc_path[1],"OpenClinica.+","CDM_Reports"),"/",format(Sys.Date(),"%Y%m%d"))
 ```
